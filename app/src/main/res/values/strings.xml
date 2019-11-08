@@ -1,8 +1,8 @@
 <resources>
 	<string name="app_name">SampleEPassport</string>
 
-	<string name="biometrics_initialized">Biometrics initialized.</string>
-	<string name="biometrics_fail_init">Biometrics FAILED to initialize.</string>
+	<string name="bio_init_done">Biometrics initialized.</string>
+	<string name="bio_ini_fail">Biometrics FAILED to initialize.</string>
 
 	<string name="reading">Reading…</string>
 	<string name="bac_failed">Failed to read document, BAC error.</string>
