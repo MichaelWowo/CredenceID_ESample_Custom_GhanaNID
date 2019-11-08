@@ -20,11 +20,8 @@
 			</intent-filter>
 		</activity>
 
-		<activity android:name=".MRZActivity">
-			<intent-filter>
-				<action android:name="android.intent.action.DEFAULT" />
-			</intent-filter>
-		</activity>
+		<activity android:name=".ctab.MRZActivity"/>
+		<activity android:name=".ctwo.MRZActivity"/>
 
 	</application>
 

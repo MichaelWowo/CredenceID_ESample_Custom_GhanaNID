@@ -1,17 +1,18 @@
 @file:Suppress("unused")
 
-package com.credenceid.sample.epassport
+package com.credenceid.sample.epassport.ctab
 
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import com.credenceid.biometrics.Biometrics.*
 import com.credenceid.biometrics.Biometrics.ResultCode.*
 import com.credenceid.icao.ICAODocumentData
 import com.credenceid.icao.ICAOReadIntermediateCode
-import kotlinx.android.synthetic.main.act_mrz.*
+import com.credenceid.sample.epassport.App
+import com.credenceid.sample.epassport.R
+import kotlinx.android.synthetic.main.act_mrz_ctab.*
 
 /**
  * Used for Android Logcat.
@@ -44,6 +45,10 @@ private const val DISCRETIONARY_TWO = 8
 private const val DOCUMENT_NUMBER = 9
 private const val GENDER = 10
 
+private var docNumber = ""
+private var dateOfBirth = ""
+private var dateOfExp = ""
+
 class MRZActivity : Activity() {
     /**
      * "readICAOBtn" should only be enabled if three conditions are all met.
@@ -60,10 +65,6 @@ class MRZActivity : Activity() {
     private var mIsEPassportOpen = false
     private var mHasMRZData = false
     private var mIsDocPresentOnEPassport = false
-
-    private var docNumber = ""
-    private var dateOfBirth = ""
-    private var dateOfExp = ""
 
     private val mrzReadListener = OnMRZReaderListener { resultCode, _, _, _, parsedData ->
         when (resultCode!!) {
@@ -140,9 +141,6 @@ class MRZActivity : Activity() {
      * Callback invoked each time sensor detects a document change from EPassport reader.
      */
     private val ePassportCardStatusListener = OnEPassportStatusListener { _, currState ->
-
-        Log.d(TAG, "CURRENT STATE: $currState")
-
         /* If currentState is not 2, then no document is present. */
         if (DOCUMENT_PRESENT_CODE != currState)
             mIsDocPresentOnEPassport = false
@@ -157,7 +155,7 @@ class MRZActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.act_mrz)
+        setContentView(R.layout.act_mrz_ctab)
         this.configureLayoutComponents()
     }
 
@@ -219,7 +217,6 @@ class MRZActivity : Activity() {
         /* Once our callback is registered we may now open the reader. */
         App.BioManager.openMRZ(object : MRZStatusListener {
             override fun onMRZOpen(resultCode: ResultCode) {
-
                 /* This code is returned once sensor has fully finished opening. */
                 when (resultCode) {
                     OK -> {

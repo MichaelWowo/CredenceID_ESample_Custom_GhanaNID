@@ -7,7 +7,7 @@
 	android:background="@color/background"
 	android:gravity="center"
 	android:orientation="vertical"
-	tools:context=".MRZActivity">
+	tools:context=".ctab.MRZActivity">
 
 	<TextView
 		android:id="@+id/statusTextView"

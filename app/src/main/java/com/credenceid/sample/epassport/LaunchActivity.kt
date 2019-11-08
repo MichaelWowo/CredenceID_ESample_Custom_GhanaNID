@@ -9,6 +9,7 @@ import android.widget.Toast.LENGTH_SHORT
 import com.credenceid.biometrics.Biometrics
 import com.credenceid.biometrics.Biometrics.ResultCode.*
 import com.credenceid.biometrics.BiometricsManager
+import com.credenceid.biometrics.DeviceFamily
 
 class LaunchActivity : Activity() {
 
@@ -33,8 +34,13 @@ class LaunchActivity : Activity() {
                     App.DevFamily = App.BioManager.deviceFamily
                     App.DevType = App.BioManager.deviceType
 
-                    /* Launch main activity. */
-                    val intent = Intent(this, MRZActivity::class.java)
+                    val intent = when (App.DevFamily) {
+                        DeviceFamily.CredenceTAB ->
+                            Intent(this, com.credenceid.sample.epassport.ctab.MRZActivity::class.java)
+                        DeviceFamily.CredenceTwo ->
+                            Intent(this, com.credenceid.sample.epassport.ctwo.MRZActivity::class.java)
+                        else -> return@initializeBiometrics
+                    }
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
                     this.finish()
