@@ -353,12 +353,14 @@ class MRZActivity : Activity() {
             return
         }
 
+        Log.d(TAG, "Reading ICAO document: $dateOfBirth, $documentNumber, $dateOfExpiry")
+
         /* Disable button so user does not initialize another readICAO document API call. */
         readICAOBtn.isEnabled = false
         statusTextView.text = getString(R.string.reading)
 
         App.BioManager.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
-        { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String, data: ICAODocumentData ->
+        { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String?, data: ICAODocumentData ->
 
             Log.d(TAG, "STAGE: " + stage.name + ", Status: " + rc.name + "Hint: $hint")
             Log.d(TAG, "ICAODocumentData: $data")

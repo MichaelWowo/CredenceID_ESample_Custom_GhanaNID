@@ -14,9 +14,7 @@ android {
 	}
 
     signingConfigs {
-        debug {
-        }
-        release {
+        defaultKey {
             keyAlias 'CredenceIDPublicKey'
             keyPassword 'CredenceID'
             storeFile file('../../CredencePublicKeys/PublicKey.jks')
@@ -26,15 +24,10 @@ android {
 
     buildTypes {
         debug {
-            minifyEnabled false
+            signingConfig signingConfigs.defaultKey
         }
         release {
-            minifyEnabled false
-            debuggable false
-            jniDebuggable false
-            renderscriptDebuggable false
-            zipAlignEnabled true
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.defaultKey
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
