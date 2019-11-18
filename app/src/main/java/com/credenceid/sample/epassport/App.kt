@@ -9,13 +9,18 @@ import com.credenceid.biometrics.DeviceType
 
 @SuppressLint("StaticFieldLeak")
 class App : Application() {
-
     companion object {
-        /* CredenceSDK biometrics object used to interface with APIs. */
-        lateinit var BioManager: BiometricsManager
-        /* Stores which Credence family of device's this app is running on. */
+        /**
+         * CredenceSDK biometrics object used to interface with APIs.
+         */
+        var BioManager: BiometricsManager? = null
+        /**
+         * Stores which Credence family of device's this app is running on.
+         */
         var DevFamily = DeviceFamily.InvalidDevice
-        /* Stores which specific device this app is running on. */
+        /**
+         * Stores which specific device this app is running on.
+         */
         var DevType = DeviceType.InvalidDevice
     }
 }

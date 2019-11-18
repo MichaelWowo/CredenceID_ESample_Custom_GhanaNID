@@ -25,14 +25,16 @@ class LaunchActivity : Activity() {
         App.BioManager = BiometricsManager(this)
 
         /* Initialize object, meaning tell CredenceService to bind to this application. */
-        App.BioManager.initializeBiometrics { resultCode: Biometrics.ResultCode, _: String, _: String ->
+        App.BioManager!!.initializeBiometrics { rc: Biometrics.ResultCode,
+                                                _: String,
+                                                _: String ->
 
-            when (resultCode) {
+            when (rc) {
                 OK -> {
-                    Toast.makeText(this, getString(R.string.bio_init_done), LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.bio_init), LENGTH_SHORT).show()
 
-                    App.DevFamily = App.BioManager.deviceFamily
-                    App.DevType = App.BioManager.deviceType
+                    App.DevFamily = App.BioManager!!.deviceFamily
+                    App.DevType = App.BioManager!!.deviceType
 
                     val intent = when (App.DevFamily) {
                         DeviceFamily.CredenceTAB ->

@@ -49,6 +49,15 @@ private var docNumber = ""
 private var dateOfBirth = ""
 private var dateOfExp = ""
 
+/**
+ * These keep track of MRZ/EPassport sensor states. These are used to regulate button enables
+ * and handle branches in functionality.
+ */
+private var isMRZOpen = false
+private var isEPassportOpen = false
+private var hasMRZData = false
+private var isDocPresentOnEPassport = false
+
 class MRZActivity : Activity() {
     /**
      * "readICAOBtn" should only be enabled if three conditions are all met.
@@ -56,15 +65,6 @@ class MRZActivity : Activity() {
      * 2. MRZ has been read and document number, D.O.B., and D.O.E. have been captured
      * 3. A document is present on EPassport sensor.
      */
-
-    /**
-     * These keep track of MRZ/EPassport sensor states. These are used to regulate button enables
-     * and handle branches in functionality.
-     */
-    private var mIsMRZOpen = false
-    private var mIsEPassportOpen = false
-    private var mHasMRZData = false
-    private var mIsDocPresentOnEPassport = false
 
     private val mrzReadListener = OnMRZReaderListener { resultCode, _, _, _, parsedData ->
         when (resultCode!!) {
@@ -109,13 +109,13 @@ class MRZActivity : Activity() {
 
                 statusTextView.text = getString(R.string.mrz_read_success)
                 icaoTextView.text = parsedData
-                mHasMRZData = true
+                hasMRZData = true
 
             }
             INTERMEDIATE -> statusTextView.text = getString(R.string.mrz_reading_wait)
             FAIL -> {
                 statusTextView.text = getString(R.string.mrz_failed_reswipe)
-                mHasMRZData = false
+                hasMRZData = false
             }
         }
     }
@@ -133,7 +133,7 @@ class MRZActivity : Activity() {
              *
              * When MRZ is read this callback is invoked "mOnMRZReadListener".
              */
-            App.BioManager.readMRZ(mrzReadListener)
+            App.BioManager!!.readMRZ(mrzReadListener)
         }
     }
 
@@ -143,12 +143,12 @@ class MRZActivity : Activity() {
     private val ePassportCardStatusListener = OnEPassportStatusListener { _, currState ->
         /* If currentState is not 2, then no document is present. */
         if (DOCUMENT_PRESENT_CODE != currState)
-            mIsDocPresentOnEPassport = false
+            isDocPresentOnEPassport = false
         else {
-            mIsDocPresentOnEPassport = true
+            isDocPresentOnEPassport = true
 
             /* Only if remaining other conditions (1 & 2) are met should button be enabled. */
-            readICAOBtn.isEnabled = mHasMRZData && mIsEPassportOpen
+            readICAOBtn.isEnabled = hasMRZData && isEPassportOpen
         }
     }
 
@@ -164,8 +164,8 @@ class MRZActivity : Activity() {
         super.onDestroy()
 
         /* Make sure to close all peripherals on application exit. */
-        App.BioManager.ePassportCloseCommand()
-        App.BioManager.closeMRZ()
+        App.BioManager!!.ePassportCloseCommand()
+        App.BioManager!!.closeMRZ()
     }
 
     /**
@@ -177,11 +177,11 @@ class MRZActivity : Activity() {
         openMRZBtn.text = getString(R.string.open_mrz)
         openMRZBtn.setOnClickListener {
             /* Based on current state of MRZ reader take appropriate action. */
-            if (!mIsMRZOpen)
+            if (!isMRZOpen)
                 openMRZReader()
             else {
-                App.BioManager.closeMRZ()
-                App.BioManager.ePassportCloseCommand()
+                App.BioManager!!.closeMRZ()
+                App.BioManager!!.ePassportCloseCommand()
             }
         }
 
@@ -189,9 +189,9 @@ class MRZActivity : Activity() {
         openEPassBtn.text = getString(R.string.open_epassport)
         openEPassBtn.setOnClickListener {
             /* Based on current state of EPassport reader take appropriate action. */
-            if (!mIsEPassportOpen)
+            if (!isEPassportOpen)
                 openEPassportReader()
-            else App.BioManager.ePassportCloseCommand()
+            else App.BioManager!!.ePassportCloseCommand()
         }
 
         readICAOBtn.isEnabled = false
@@ -212,10 +212,10 @@ class MRZActivity : Activity() {
         /* Register a listener that will be invoked each time MRZ reader's status changes. Meaning
          * that anytime a document is placed/removed invoke this callback.
          */
-        App.BioManager.registerMRZDocumentStatusListener(onMRZDocumentStatusListener)
+        App.BioManager!!.registerMRZDocumentStatusListener(onMRZDocumentStatusListener)
 
         /* Once our callback is registered we may now open the reader. */
-        App.BioManager.openMRZ(object : MRZStatusListener {
+        App.BioManager!!.openMRZ(object : MRZStatusListener {
             override fun onMRZOpen(resultCode: ResultCode) {
                 /* This code is returned once sensor has fully finished opening. */
                 when (resultCode) {
@@ -224,7 +224,7 @@ class MRZActivity : Activity() {
                          * close. To achieve this we change flag which controls what action button
                          * will take.
                          */
-                        mIsMRZOpen = true
+                        isMRZOpen = true
 
                         statusTextView.text = getString(R.string.mrz_opened)
                         openMRZBtn.text = getString(R.string.close_mrz)
@@ -247,7 +247,7 @@ class MRZActivity : Activity() {
                          * open. To achieve this we change flag which controls what action button
                          * will take.
                          */
-                        mIsMRZOpen = false
+                        isMRZOpen = false
 
                         statusTextView.text = getString(R.string.mrz_closed)
                         openMRZBtn.text = getString(R.string.open_mrz)
@@ -275,11 +275,12 @@ class MRZActivity : Activity() {
         /* Register a listener will be invoked each time EPassport reader's status changes. Meaning
          * that anytime a document is placed/removed invoke this callback.
          */
-        App.BioManager.registerEPassportStatusListener(ePassportCardStatusListener)
+        App.BioManager!!.registerEPassportStatusListener(ePassportCardStatusListener)
 
         /* Once our callback is registered we may now open the reader. */
-        App.BioManager.ePassportOpenCommand(object : EPassportReaderStatusListener {
+        App.BioManager!!.ePassportOpenCommand(object : EPassportReaderStatusListener {
             override fun onEPassportReaderOpen(resultCode: ResultCode) {
+
                 when (resultCode) {
                     /* This code is returned once sensor has fully finished opening. */
                     OK -> {
@@ -287,7 +288,7 @@ class MRZActivity : Activity() {
                          * close. To achieve this we change flag which controls what action button
                          * will take.
                          */
-                        mIsEPassportOpen = true
+                        isEPassportOpen = true
 
                         openEPassBtn.text = getString(R.string.close_epassport)
                         statusTextView.text = getString(R.string.epassport_opened)
@@ -311,7 +312,7 @@ class MRZActivity : Activity() {
                           * open. To achieve this we change flag which controls what action button
                           * will take.
                           */
-                        mIsEPassportOpen = false
+                        isEPassportOpen = false
 
                         readICAOBtn.isEnabled = false
                         openEPassBtn.isEnabled = true
@@ -359,7 +360,7 @@ class MRZActivity : Activity() {
         readICAOBtn.isEnabled = false
         statusTextView.text = getString(R.string.reading)
 
-        App.BioManager.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
+        App.BioManager!!.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
         { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String?, data: ICAODocumentData ->
 
             Log.d(TAG, "STAGE: " + stage.name + ", Status: " + rc.name + "Hint: $hint")
@@ -376,7 +377,7 @@ class MRZActivity : Activity() {
                  */
                 if (FAIL == rc) {
                     statusTextView.text = getString(R.string.bac_failed)
-                    readICAOBtn.isEnabled = (mIsEPassportOpen && mHasMRZData && mIsDocPresentOnEPassport)
+                    readICAOBtn.isEnabled = (isEPassportOpen && hasMRZData && isDocPresentOnEPassport)
                 }
 
             } else if (ICAOReadIntermediateCode.DG1 == stage) {
@@ -414,9 +415,9 @@ class MRZActivity : Activity() {
                  * 2. MRZ data is valid.
                  * 3. Document is still present.
                  */
-                readICAOBtn.isEnabled = (mIsEPassportOpen
-                        && mHasMRZData
-                        && mIsDocPresentOnEPassport)
+                readICAOBtn.isEnabled = (isEPassportOpen
+                        && hasMRZData
+                        && isDocPresentOnEPassport)
             }
         }
     }

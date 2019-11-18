@@ -1,7 +1,7 @@
 <resources>
 	<string name="app_name">SampleEPassport</string>
 	<string name="bac_failed">Failed to read document, BAC error.</string>
-	<string name="bio_init_done">Biometrics initialized.</string>
+	<string name="bio_init">Biometrics initialized.</string>
 	<string name="bio_ini_fail">Biometrics FAILED to initialize.</string>
 	<string name="card_closed">Card reader closed.</string>
 	<string name="card_close_fail">Failed to close card reader.</string>

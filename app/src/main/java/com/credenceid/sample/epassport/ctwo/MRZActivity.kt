@@ -47,8 +47,8 @@ class MRZActivity : Activity() {
         super.onDestroy()
 
         /* Make sure to close all peripherals on application exit. */
-        App.BioManager.ePassportCloseCommand()
-        App.BioManager.closeMRZ()
+        App.BioManager!!.ePassportCloseCommand()
+        App.BioManager!!.closeMRZ()
     }
 
     /**
@@ -60,7 +60,7 @@ class MRZActivity : Activity() {
             /* Based on current state of MRZ reader take appropriate action. */
             if (!isCardReaderOpen)
                 openCardReader()
-            else App.BioManager.cardCloseCommand()
+            else App.BioManager!!.cardCloseCommand()
         }
 
         readICAOBtn.isEnabled = false
@@ -77,9 +77,9 @@ class MRZActivity : Activity() {
         icaoDG2ImageView.setImageBitmap(null)
         statusTextView.text = getString(R.string.cardreader_opening)
 
-        App.BioManager.registerCardStatusListener(onCardStatusListener)
+        App.BioManager!!.registerCardStatusListener(onCardStatusListener)
 
-        App.BioManager.cardOpenCommand(object : CardReaderStatusListener {
+        App.BioManager!!.cardOpenCommand(object : CardReaderStatusListener {
             override fun onCardReaderOpen(resultCode: ResultCode?) {
                 /* This code is returned once sensor has fully finished opening. */
                 when (resultCode) {
@@ -159,7 +159,7 @@ class MRZActivity : Activity() {
         readICAOBtn.isEnabled = false
         statusTextView.text = getString(R.string.reading)
 
-        App.BioManager.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
+        App.BioManager!!.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
         { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String?, data: ICAODocumentData ->
 
             Log.d(TAG, "STAGE: " + stage.name + ", Status: " + rc.name + "Hint: $hint")
