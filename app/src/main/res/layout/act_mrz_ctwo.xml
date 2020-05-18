@@ -7,7 +7,7 @@
     android:background="@color/background"
     android:gravity="center"
     android:orientation="vertical"
-    tools:context=".ctwo.MRZActivity">
+    tools:context=".MRZActivity">
 
     <TextView
         android:id="@+id/statusTextView"
@@ -63,27 +63,11 @@
         android:orientation="vertical">
 
         <EditText
-            android:id="@+id/dobEditText"
-            android:layout_width="300dp"
-            android:layout_height="50dp"
-            android:hint="@string/date_of_birth"
-            android:inputType="number"
-            android:textColor="@color/black" />
-
-        <EditText
-            android:id="@+id/doeEditText"
-            android:layout_width="300dp"
-            android:layout_height="50dp"
-            android:hint="@string/date_of_exp"
-            android:inputType="number"
-            android:textColor="@color/black" />
-
-        <EditText
-            android:id="@+id/docNumberEditText"
+            android:id="@+id/docCanEditText"
             android:layout_width="300dp"
             android:textColor="@color/black"
             android:layout_height="50dp"
-            android:hint="@string/doc_number" />
+            android:hint="@string/doc_can" />
 
     </LinearLayout>
 

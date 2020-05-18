@@ -14,6 +14,7 @@
 	<string name="date_of_birth">Date Of Birth</string>
     <string name="date_of_exp">Date Of Expiry</string>
     <string name="doc_number">Document Number</string>
+	<string name="doc_can">Document CAN</string>
 	<string name="icao_done">Finished reading document.</string>
 	<string name="open_cardreader">Open Card Reader</string>
 	<string name="open_epassport">Open EPassport</string>
