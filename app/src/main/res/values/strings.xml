@@ -31,6 +31,9 @@
 	<string name="mrz_failed_reswipe">Failed to read MRZ, please re-swipe document.</string>
 	<string name="mrz_reading_wait">Reading MRZ, please wait…</string>
 	<string name="mrz_read_success">MRZ successfully read.</string>
+	<string name="read_ghananid_button_label">Read GhanaNId</string>
 	<string name="read_icao_button_label">Read ICAO</string>
+    <string name="generate_request">Generate certificate Request</string>
 	<string name="reading">Reading…</string>
+	<string name="not_supported">Not Supported!</string>
 </resources>

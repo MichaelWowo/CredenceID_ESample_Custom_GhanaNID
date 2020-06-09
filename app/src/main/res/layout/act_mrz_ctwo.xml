@@ -33,8 +33,13 @@
             android:layout_height="300dp"
             tools:ignore="ContentDescription" />
 
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
         <TextView
-            android:id="@+id/icaoTextView"
+            android:id="@+id/icaoTextView1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp" />
@@ -44,15 +49,17 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
+        <TextView
+            android:id="@+id/icaoTextView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp" />
 
         <View
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_weight="1" />
+
     </LinearLayout>
 
     <LinearLayout
@@ -93,9 +100,29 @@
             android:layout_weight="1" />
 
         <Button
-            android:id="@+id/readICAOBtn"
+            android:id="@+id/readGhanaIdBtn"
+            style="@style/MRZActivityButton"
+            android:text="@string/read_ghananid_button_label" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/readIcaoBtn"
             style="@style/MRZActivityButton"
             android:text="@string/read_icao_button_label" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/generateCertificateRequestBtn"
+            style="@style/MRZActivityButton"
+            android:text="@string/generate_request" />
 
         <View
             android:layout_width="0dp"

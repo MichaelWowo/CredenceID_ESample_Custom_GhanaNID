@@ -27,10 +27,10 @@ class MRZActivity : Activity() {
 
     private var onCardStatusListener = OnCardStatusListener { _, _, currState ->
         if (currState in 2..6) {
-            readICAOBtn.isEnabled = true
+            setReadButtons (true)
             isDocumentPresent = true
         } else {
-            readICAOBtn.isEnabled = false
+            setReadButtons (true)
             isDocumentPresent = false
         }
     }
@@ -57,22 +57,53 @@ class MRZActivity : Activity() {
     private fun configureLayoutComponents() {
 
         openCardBtn.setOnClickListener {
-            /* Based on current state of MRZ reader take appropriate action. */
             if (!isCardReaderOpen)
                 openCardReader()
             else App.BioManager!!.cardCloseCommand()
         }
 
-        readICAOBtn.isEnabled = false
-        readICAOBtn.setOnClickListener {
+        setReadButtons (false)
+        readGhanaIdBtn.setOnClickListener {
             icaoDG2ImageView.setImageBitmap(null)
-            this.readICAODocument(docCanEditText.text.toString())
+            icaoTextView1.setText("")
+            icaoTextView2.setText("")
+            this.readGhanaIdDocument(docCanEditText.text.toString())
+        }
+
+        readIcaoBtn.setOnClickListener {
+            icaoDG2ImageView.setImageBitmap(null)
+            icaoTextView1.setText("")
+            icaoTextView2.setText("")
+            val docNumber = ""
+            val dateOfBirth = ""
+            val expirationDate = ""
+            this.readICAODocument(docNumber, dateOfBirth, expirationDate)
+        }
+
+        generateCertificateRequestBtn.setOnClickListener {
+            App.BioManager!!.generateTerminalIsCertificate(generateTerminalIsCertificateListener { resultCode, s ->
+                when (resultCode) {
+                    OK -> {
+                        statusTextView.text = "Certificate generation OK"
+                    }
+                    /* This code is returned while sensor is in the middle of opening. */
+                    INTERMEDIATE -> {
+                    }
+                    /* This code is returned if sensor fails to open. */
+                    FAIL -> {
+                        statusTextView.text = "Certificate generation failed"
+                    }
+                }
+            }
+            )
         }
     }
 
     private fun openCardReader() {
 
         icaoDG2ImageView.setImageBitmap(null)
+        icaoTextView1.setText("")
+        icaoTextView2.setText("")
         statusTextView.text = getString(R.string.cardreader_opening)
 
         App.BioManager!!.registerCardStatusListener(onCardStatusListener)
@@ -113,7 +144,7 @@ class MRZActivity : Activity() {
 
                         statusTextView.text = getString(R.string.card_closed)
                         openCardBtn.text = getString(R.string.open_cardreader)
-                        readICAOBtn.isEnabled = false
+                        setReadButtons (false)
 
                     }
                     /* This code is never returned for this API. */
@@ -126,7 +157,7 @@ class MRZActivity : Activity() {
     }
 
     @SuppressLint("SetTextI18n")
-    private fun readICAODocument(can: String?) {
+    private fun readGhanaIdDocument(can: String?) {
 
         /* If any one of three parameters is bad then do not proceed with document reading. */
         if (null == can || can.isEmpty()) {
@@ -137,71 +168,80 @@ class MRZActivity : Activity() {
         Log.d(TAG, "Reading ICAO document: $can")
 
         /* Disable button so user does not initialize another readICAO document API call. */
-        readICAOBtn.isEnabled = false
+        setReadButtons (false)
         statusTextView.text = getString(R.string.reading)
 
-        App.BioManager!!.readICAODocument(can,CERTIFICATES_LOCAL_PATH, GHANA_ID_CARD)
+        App.BioManager!!.readSpecificDocument(can,CERTIFICATES_LOCAL_PATH, GHANA_ID_CARD)
         { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String?, data: GhanaIdCardData ->
 
             Log.d(TAG, "STAGE: " + stage.name + ", Status: " + rc.name + "Hint: $hint")
             Log.d("CID", "GhanaIdCardData: $data")
 
-            statusTextView.text = "Finished reading stage: " + stage.name
-            if (ICAOReadIntermediateCode.BAC == stage) {
-                if (FAIL == rc) {
-                    statusTextView.text = getString(R.string.bac_failed)
-                    readICAOBtn.isEnabled = (isCardReaderOpen && isDocumentPresent)
+            when (rc) {
+                OK -> {
+
+                    statusTextView.text = "Finished reading stage: " + stage.name
+                    if (ICAOReadIntermediateCode.BAC == stage) {
+                        if (FAIL == rc) {
+                            statusTextView.text = getString(R.string.bac_failed)
+                            setReadButtons(isCardReaderOpen && isDocumentPresent)
+                        }
+
+                    } else if (ICAOReadIntermediateCode.DG1 == stage) {
+                        if (OK == rc) {
+                            icaoTextView1.text = "DG1 - " + data.DG1.toString()
+                        }
+
+                    } else if (ICAOReadIntermediateCode.DG2 == stage) {
+                        if (OK == rc) {
+                            icaoTextView1.text = icaoTextView1.text.toString() + "\nDG2 - " + data.DG2.toString()
+                            icaoDG2ImageView.setImageBitmap(data.DG2.faceImage)
+                        }
+
+                    } else if (ICAOReadIntermediateCode.DG3 == stage) {
+                        if (OK == rc)
+                            icaoTextView1.text = icaoTextView1.text.toString() + "\nDG3 - " + data.DG3.toString()
+
+                    } else if (ICAOReadIntermediateCode.DG4 == stage) {
+                        if (OK == rc)
+                            icaoTextView1.text = icaoTextView1.text.toString() + "\nDG4 - " + data.DG4.toString()
+
+                    } else if (ICAOReadIntermediateCode.DG5 == stage) {
+                        if (OK == rc)
+                            icaoTextView2.text = icaoTextView2.text.toString() + "\nDG5 - " + data.DG5.toString()
+
+                    }  else if (ICAOReadIntermediateCode.DG6 == stage) {
+                        if (OK == rc)
+                            icaoTextView2.text = icaoTextView2.text.toString() + "\nDG6 - " + data.DG6.toString()
+
+                    } else if (ICAOReadIntermediateCode.DG7 == stage) {
+                        if (OK == rc)
+                            icaoTextView2.text = icaoTextView2.text.toString() + "\nDG7 - " + data.DG7.toString()
+
+                    }  else if (ICAOReadIntermediateCode.DG8 == stage) {
+                        if (OK == rc)
+                            icaoTextView2.text = icaoTextView2.text.toString() + "\nDG8 - " + data.DG8.toString()
+
+                    }  else if (ICAOReadIntermediateCode.DG9 == stage) {
+                        if (OK == rc)
+                            icaoTextView2.text = icaoTextView2.text.toString() + "\nDG9 - " + data.DG9.toString()
+
+                    }  else if (ICAOReadIntermediateCode.DG10 == stage) {
+                        if (OK == rc)
+                            icaoTextView2.text = icaoTextView2.text.toString() + "\nDG10 - " + data.DG10.toString()
+
+                    } else if (ICAOReadIntermediateCode.DG11 == stage) {
+                        if (OK == rc)
+                            icaoTextView2.text = icaoTextView2.text.toString() + "\nDG11 - " + data.DG11.toString()
+
+                        statusTextView.text = getString(R.string.icao_done)
+                        setReadButtons (isCardReaderOpen && isDocumentPresent)
+                    }
                 }
-
-            } else if (ICAOReadIntermediateCode.DG1 == stage) {
-                if (OK == rc) {
-                    icaoTextView.text = "DG1 - " + data.DG1.toString()
+                /* This code is never returned for this API. */
+                INTERMEDIATE -> {
                 }
-
-            } else if (ICAOReadIntermediateCode.DG2 == stage) {
-                if (OK == rc) {
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG2 - " + data.DG2.toString()
-                    icaoDG2ImageView.setImageBitmap(data.DG2.faceImage)
-                }
-
-            } else if (ICAOReadIntermediateCode.DG3 == stage) {
-                if (OK == rc)
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG3 - " + data.DG3.toString()
-
-            } else if (ICAOReadIntermediateCode.DG4 == stage) {
-                if (OK == rc)
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG4 - " + data.DG4.toString()
-
-            } else if (ICAOReadIntermediateCode.DG5 == stage) {
-                if (OK == rc)
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG5 - " + data.DG5.toString()
-
-            }  else if (ICAOReadIntermediateCode.DG6 == stage) {
-                if (OK == rc)
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG6 - " + data.DG6.toString()
-
-            } else if (ICAOReadIntermediateCode.DG7 == stage) {
-                if (OK == rc)
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG7 - " + data.DG7.toString()
-
-            }  else if (ICAOReadIntermediateCode.DG8 == stage) {
-                if (OK == rc)
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG8 - " + data.DG8.toString()
-
-            }  else if (ICAOReadIntermediateCode.DG9 == stage) {
-                if (OK == rc)
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG9 - " + data.DG9.toString()
-
-            }  else if (ICAOReadIntermediateCode.DG10 == stage) {
-                if (OK == rc)
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG10 - " + data.DG10.toString()
-
-            } else if (ICAOReadIntermediateCode.DG11 == stage) {
-                if (OK == rc)
-                    icaoTextView.text = icaoTextView.text.toString() + "\nDG11 - " + data.DG11.toString()
-
-                statusTextView.text = getString(R.string.icao_done)
-                readICAOBtn.isEnabled = (isCardReaderOpen && isDocumentPresent)
+                FAIL -> statusTextView.text = "Reading failed \n" + hint
             }
         }
     }
@@ -235,7 +275,7 @@ class MRZActivity : Activity() {
         Log.d(TAG, "Reading ICAO document: $dateOfBirth, $documentNumber, $dateOfExpiry")
 
         /* Disable button so user does not initialize another readICAO document API call. */
-        readICAOBtn.isEnabled = false
+        setReadButtons(false)
         statusTextView.text = getString(R.string.reading)
 
         App.BioManager!!.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
@@ -248,41 +288,46 @@ class MRZActivity : Activity() {
             if (ICAOReadIntermediateCode.BAC == stage) {
                 if (FAIL == rc) {
                     statusTextView.text = getString(R.string.bac_failed)
-                    readICAOBtn.isEnabled = (isCardReaderOpen && isDocumentPresent)
+                    setReadButtons(isCardReaderOpen && isDocumentPresent)
                 }
 
             } else if (ICAOReadIntermediateCode.DG1 == stage) {
                 if (OK == rc) {
                     Log.d("CPC", "DG1 DATA = "+ data.DG1.toString());
-                    icaoTextView.text = data.DG1.toString()
+                    icaoTextView1.text = data.DG1.toString()
                 }
 
             } else if (ICAOReadIntermediateCode.DG2 == stage) {
                 if (OK == rc) {
-                    icaoTextView.text = data.DG2.toString()
+                    icaoTextView1.text = data.DG2.toString()
                     icaoDG2ImageView.setImageBitmap(data.DG2.faceImage)
                 }
 
             } else if (ICAOReadIntermediateCode.DG3 == stage) {
                 if (OK == rc)
-                    icaoTextView.text = data.DG3.toString()
+                    icaoTextView1.text = data.DG3.toString()
 
             } else if (ICAOReadIntermediateCode.DG7 == stage) {
                 if (OK == rc)
-                    icaoTextView.text = data.DG7.toString()
+                    icaoTextView1.text = data.DG7.toString()
 
             } else if (ICAOReadIntermediateCode.DG11 == stage) {
                 if (OK == rc)
-                    icaoTextView.text = data.DG1.toString()
+                    icaoTextView1.text = data.DG1.toString()
 
             } else if (ICAOReadIntermediateCode.DG12 == stage) {
                 if (OK == rc)
-                    icaoTextView.text = data.DG12.toString()
+                    icaoTextView1.text = data.DG12.toString()
 
                 statusTextView.text = getString(R.string.icao_done)
-                readICAOBtn.isEnabled = (isCardReaderOpen && isDocumentPresent)
+                setReadButtons(isCardReaderOpen && isDocumentPresent)
             }
         }
+    }
+
+    private fun setReadButtons(enable: Boolean){
+        readIcaoBtn.isEnabled = enable
+        readGhanaIdBtn.isEnabled = enable
     }
 }
 
