@@ -6,8 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import com.credenceid.biometrics.Biometrics.*
 import com.credenceid.biometrics.Biometrics.ResultCode.*
-import com.credenceid.constants.ServiceConstants.ICAO.GHANA_ID_CARD
-import com.credenceid.icao.GhanaIdCardData
+import com.credenceid.icao.GIdData
 import com.credenceid.icao.ICAODocumentData
 import com.credenceid.icao.ICAOReadIntermediateCode
 import kotlinx.android.synthetic.main.act_mrz_ctwo.*
@@ -20,8 +19,10 @@ private val TAG = MRZActivity::class.java.simpleName
  * Keeps track of card reader sensor state.
  */
 private var isCardReaderOpen = false
+private var isPassportReaderOpen = false
 private var isDocumentPresent = false
-private var CERTIFICATES_LOCAL_PATH = "/sdcard/credenceid/GhanaNID/eid/"
+private var CERTIFICATES_LOCAL_EID_PATH = "/sdcard/credenceid/GhanaNID/eid/"
+private var CERTIFICATES_LOCAL_ICAO_PATH = "/sdcard/credenceid/GhanaNID/icao/"
 
 class MRZActivity : Activity() {
 
@@ -30,7 +31,18 @@ class MRZActivity : Activity() {
             setReadButtons (true)
             isDocumentPresent = true
         } else {
+            setReadButtons (false)
+            isDocumentPresent = false
+        }
+    }
+
+    private var onEPassportStatusListener = OnEPassportStatusListener { _, currState ->
+        Log.d(TAG, "Epasport status : " + currState)
+        if (currState in 2..6) {
             setReadButtons (true)
+            isDocumentPresent = true
+        } else {
+            setReadButtons (false)
             isDocumentPresent = false
         }
     }
@@ -62,6 +74,12 @@ class MRZActivity : Activity() {
             else App.BioManager!!.cardCloseCommand()
         }
 
+        openEpassBtn.setOnClickListener {
+            if (!isPassportReaderOpen)
+                openMrzReader()
+            else App.BioManager!!.ePassportCloseCommand()
+        }
+
         setReadButtons (false)
         readGhanaIdBtn.setOnClickListener {
             icaoDG2ImageView.setImageBitmap(null)
@@ -74,10 +92,10 @@ class MRZActivity : Activity() {
             icaoDG2ImageView.setImageBitmap(null)
             icaoTextView1.setText("")
             icaoTextView2.setText("")
-            val docNumber = ""
-            val dateOfBirth = ""
-            val expirationDate = ""
-            this.readICAODocument(docNumber, dateOfBirth, expirationDate)
+            val mrzString = "I<GHAL898902C<3<<<<<<<<<<<<<<<" +
+                    "8006226M2001012GHA<<<<<<<<<<<8" +
+                    "HEMINGWAY<<ERNEST<<<<<<<<<<<<<"
+            this.readICAODocument(mrzString)
         }
 
         generateCertificateRequestBtn.setOnClickListener {
@@ -156,8 +174,116 @@ class MRZActivity : Activity() {
         })
     }
 
+    private fun openMrzReader() {
+
+        icaoDG2ImageView.setImageBitmap(null)
+        icaoTextView1.setText("")
+        icaoTextView2.setText("")
+        statusTextView.text = getString(R.string.mrz_opening)
+
+        App.BioManager!!.openMRZ(object : MRZStatusListener {
+            override fun onMRZOpen(resultCode: ResultCode?) {
+                /* This code is returned once sensor has fully finished opening. */
+                when (resultCode) {
+                    OK -> {
+                        /* Now that sensor is open, if user presses "openCardBtn" sensor should
+                         * close. To achieve this we change flag which controls what action button
+                         * will take.
+                         */
+
+                        statusTextView.text = getString(R.string.mrz_opened)
+                        openEPassportReader();
+                    }
+                    /* This code is returned while sensor is in the middle of opening. */
+                    INTERMEDIATE -> {
+                    }
+                    /* This code is returned if sensor fails to open. */
+                    FAIL -> {
+                        statusTextView.text = getString(R.string.mrz_open_failed)
+                    }
+                }
+            }
+
+            override fun onMRZClose(resultCode: ResultCode,
+                                                 closeReasonCode: CloseReasonCode?) {
+                when (resultCode) {
+                    OK -> {
+                        /* Now that sensor is closed, if user presses "openCardBtn" sensor should
+                         * open. To achieve this we change flag which controls what action button
+                         * will take.
+                         */
+
+                        statusTextView.text = getString(R.string.mrz_closed)
+
+                    }
+                    /* This code is never returned for this API. */
+                    INTERMEDIATE -> {
+                    }
+                    FAIL -> statusTextView.text = getString(R.string.mrz_failed_close)
+                }
+            }
+        })
+    }
+
+    private fun openEPassportReader() {
+
+        icaoDG2ImageView.setImageBitmap(null)
+        icaoTextView1.setText("")
+        icaoTextView2.setText("")
+        statusTextView.text = getString(R.string.epassport_opening)
+
+        App.BioManager!!.registerEPassportStatusListener(onEPassportStatusListener)
+
+        App.BioManager!!.ePassportOpenCommand(object : EPassportReaderStatusListener {
+            override fun onEPassportReaderOpen(resultCode: ResultCode?) {
+                /* This code is returned once sensor has fully finished opening. */
+                when (resultCode) {
+                    OK -> {
+                        /* Now that sensor is open, if user presses "openCardBtn" sensor should
+                         * close. To achieve this we change flag which controls what action button
+                         * will take.
+                         */
+                        isPassportReaderOpen = true
+
+                        statusTextView.text = getString(R.string.epassport_opened)
+                        openCardBtn.text = getString(R.string.close_epassport)
+                    }
+                    /* This code is returned while sensor is in the middle of opening. */
+                    INTERMEDIATE -> {
+                    }
+                    /* This code is returned if sensor fails to open. */
+                    FAIL -> {
+                        statusTextView.text = getString(R.string.epassport_open_failed)
+                    }
+                }
+            }
+
+            override fun onEPassportReaderClosed(resultCode: ResultCode,
+                                            closeReasonCode: CloseReasonCode?) {
+                when (resultCode) {
+                    OK -> {
+                        /* Now that sensor is closed, if user presses "openCardBtn" sensor should
+                         * open. To achieve this we change flag which controls what action button
+                         * will take.
+                         */
+                        isPassportReaderOpen = false
+
+                        statusTextView.text = getString(R.string.epassport_closed)
+                        openEpassBtn.text = getString(R.string.open_epassport)
+                        setReadButtons (false)
+
+                    }
+                    /* This code is never returned for this API. */
+                    INTERMEDIATE -> {
+                    }
+                    FAIL -> statusTextView.text = getString(R.string.epassport_open_failed)
+                }
+            }
+        })
+    }
+
     @SuppressLint("SetTextI18n")
-    private fun readGhanaIdDocument(can: String?) {
+    private fun  readGhanaIdDocument(can: String?) {
 
         /* If any one of three parameters is bad then do not proceed with document reading. */
         if (null == can || can.isEmpty()) {
@@ -171,8 +297,8 @@ class MRZActivity : Activity() {
         setReadButtons (false)
         statusTextView.text = getString(R.string.reading)
 
-        App.BioManager!!.readSpecificDocument(can,CERTIFICATES_LOCAL_PATH, GHANA_ID_CARD)
-        { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String?, data: GhanaIdCardData ->
+        App.BioManager!!.readSmartCard(can,CERTIFICATES_LOCAL_EID_PATH, "GhanaNID")
+        { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String?, data: GIdData ->
 
             Log.d(TAG, "STAGE: " + stage.name + ", Status: " + rc.name + "Hint: $hint")
             Log.d("CID", "GhanaIdCardData: $data")
@@ -184,7 +310,7 @@ class MRZActivity : Activity() {
                     if (ICAOReadIntermediateCode.BAC == stage) {
                         if (FAIL == rc) {
                             statusTextView.text = getString(R.string.bac_failed)
-                            setReadButtons(isCardReaderOpen && isDocumentPresent)
+                            setReadButtons(isDocumentPresent)
                         }
 
                     } else if (ICAOReadIntermediateCode.DG1 == stage) {
@@ -235,7 +361,7 @@ class MRZActivity : Activity() {
                             icaoTextView2.text = icaoTextView2.text.toString() + "\nDG11 - " + data.DG11.toString()
 
                         statusTextView.text = getString(R.string.icao_done)
-                        setReadButtons (isCardReaderOpen && isDocumentPresent)
+                        setReadButtons (isDocumentPresent)
                     }
                 }
                 /* This code is never returned for this API. */
@@ -254,31 +380,19 @@ class MRZActivity : Activity() {
      * @param dateOfExpiry Date of expiry on ICAO document (YYMMDD format).
      */
     @SuppressLint("SetTextI18n")
-    private fun readICAODocument(dateOfBirth: String?,
-                                 documentNumber: String?,
-                                 dateOfExpiry: String?) {
+    private fun readICAODocument(mrz: String?) {
 
-        /* If any one of three parameters is bad then do not proceed with document reading. */
-        if (null == dateOfBirth || dateOfBirth.isEmpty()) {
-            Log.w(TAG, "DateOfBirth parameter INVALID, will not read ICAO document.")
-            return
-        }
-        if (null == documentNumber || documentNumber.isEmpty()) {
-            Log.w(TAG, "DocumentNumber parameter INVALID, will not read ICAO document.")
-            return
-        }
-        if (null == dateOfExpiry || dateOfExpiry.isEmpty()) {
-            Log.w(TAG, "DateOfExpiry parameter INVALID, will not read ICAO document.")
-            return
-        }
 
-        Log.d(TAG, "Reading ICAO document: $dateOfBirth, $documentNumber, $dateOfExpiry")
+        Log.d(TAG, "Reading ICAO document: $mrz")
 
         /* Disable button so user does not initialize another readICAO document API call. */
         setReadButtons(false)
         statusTextView.text = getString(R.string.reading)
 
-        App.BioManager!!.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
+        App.BioManager!!.readSmartCard(mrz,
+                CERTIFICATES_LOCAL_ICAO_PATH, "GhanaICAO"
+        )
+        //App.BioManager!!.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
         { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String?, data: ICAODocumentData ->
 
             Log.d(TAG, "STAGE: " + stage.name + ", Status: " + rc.name + "Hint: $hint")
@@ -288,7 +402,7 @@ class MRZActivity : Activity() {
             if (ICAOReadIntermediateCode.BAC == stage) {
                 if (FAIL == rc) {
                     statusTextView.text = getString(R.string.bac_failed)
-                    setReadButtons(isCardReaderOpen && isDocumentPresent)
+                    setReadButtons(isDocumentPresent)
                 }
 
             } else if (ICAOReadIntermediateCode.DG1 == stage) {
@@ -304,8 +418,16 @@ class MRZActivity : Activity() {
                 }
 
             } else if (ICAOReadIntermediateCode.DG3 == stage) {
-                if (OK == rc)
-                    icaoTextView1.text = data.DG3.toString()
+                if (OK == rc) {
+                    icaoTextView1.text = "Number of fingers" + data.DG3.fingers.size
+                    icaoTextView1.text = icaoTextView1.text.toString() + "\n" +
+                            data.DG3.toString()
+                    if(data.DG3.fingers.size > 0)
+
+                        icaoTextView1.text = icaoTextView1.text.toString() + "\n" +
+                                data.DG3.fingers[0].bytes.size
+                        icaoDG2ImageView.setImageBitmap(data.DG3.fingers[0].bitmap)
+                }
 
             } else if (ICAOReadIntermediateCode.DG7 == stage) {
                 if (OK == rc)
@@ -320,7 +442,7 @@ class MRZActivity : Activity() {
                     icaoTextView1.text = data.DG12.toString()
 
                 statusTextView.text = getString(R.string.icao_done)
-                setReadButtons(isCardReaderOpen && isDocumentPresent)
+                setReadButtons(isDocumentPresent)
             }
         }
     }
