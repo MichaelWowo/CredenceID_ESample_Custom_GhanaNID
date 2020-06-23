@@ -28,7 +28,7 @@ class MRZActivity : Activity() {
 
     private var onCardStatusListener = OnCardStatusListener { _, _, currState ->
         if (currState in 2..6) {
-            setReadButtons (true)
+            readGhanaIdBtn.isEnabled = true
             isDocumentPresent = true
         } else {
             setReadButtons (false)
@@ -39,7 +39,7 @@ class MRZActivity : Activity() {
     private var onEPassportStatusListener = OnEPassportStatusListener { _, currState ->
         Log.d(TAG, "Epasport status : " + currState)
         if (currState in 2..6) {
-            setReadButtons (true)
+            readIcaoBtn.isEnabled = true
             isDocumentPresent = true
         } else {
             setReadButtons (false)
@@ -246,7 +246,7 @@ class MRZActivity : Activity() {
                         isPassportReaderOpen = true
 
                         statusTextView.text = getString(R.string.epassport_opened)
-                        openCardBtn.text = getString(R.string.close_epassport)
+                        openEpassBtn.text = getString(R.string.close_epassport)
                     }
                     /* This code is returned while sensor is in the middle of opening. */
                     INTERMEDIATE -> {
@@ -291,7 +291,7 @@ class MRZActivity : Activity() {
             return
         }
 
-        Log.d(TAG, "Reading ICAO document: $can")
+        Log.d(TAG, "Reading ID document: $can")
 
         /* Disable button so user does not initialize another readICAO document API call. */
         setReadButtons (false)
@@ -367,7 +367,11 @@ class MRZActivity : Activity() {
                 /* This code is never returned for this API. */
                 INTERMEDIATE -> {
                 }
-                FAIL -> statusTextView.text = "Reading failed \n" + hint
+                FAIL -> {
+                    statusTextView.text = "Reading failed \n" + hint
+                    statusTextView.text = getString(R.string.icao_done)
+                    setReadButtons(isDocumentPresent)
+                }
             }
         }
     }
@@ -408,7 +412,7 @@ class MRZActivity : Activity() {
             } else if (ICAOReadIntermediateCode.DG1 == stage) {
                 if (OK == rc) {
                     Log.d("CPC", "DG1 DATA = "+ data.DG1.toString());
-                    icaoTextView1.text = data.DG1.toString()
+                    icaoTextView2.text = data.DG1.toString()
                 }
 
             } else if (ICAOReadIntermediateCode.DG2 == stage) {
@@ -428,18 +432,6 @@ class MRZActivity : Activity() {
                                 data.DG3.fingers[0].bytes.size
                         icaoDG2ImageView.setImageBitmap(data.DG3.fingers[0].bitmap)
                 }
-
-            } else if (ICAOReadIntermediateCode.DG7 == stage) {
-                if (OK == rc)
-                    icaoTextView1.text = data.DG7.toString()
-
-            } else if (ICAOReadIntermediateCode.DG11 == stage) {
-                if (OK == rc)
-                    icaoTextView1.text = data.DG1.toString()
-
-            } else if (ICAOReadIntermediateCode.DG12 == stage) {
-                if (OK == rc)
-                    icaoTextView1.text = data.DG12.toString()
 
                 statusTextView.text = getString(R.string.icao_done)
                 setReadButtons(isDocumentPresent)
