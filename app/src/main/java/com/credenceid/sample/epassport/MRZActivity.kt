@@ -353,8 +353,32 @@ class MRZActivity : Activity() {
                             icaoTextView2.text = icaoTextView2.text.toString() + "\nDG9 - " + data.DG9.toString()
 
                     }  else if (ICAOReadIntermediateCode.DG10 == stage) {
-                        if (OK == rc)
+                        if (OK == rc) {
                             icaoTextView2.text = icaoTextView2.text.toString() + "\nDG10 - " + data.DG10.toString()
+                            Log.d(TAG, "MINUTIAE LENTGH = " + data.DG10.getFingers()[0].minutiae.size);
+                            var FP1 = App.BioManager!!.convertCCFToFMDSync(data.DG10.getFingers()[1].minutiae, 350 , 450, 500, 500, 2000)
+                            App.BioManager!!.convertCCFToFMD(data.DG10.getFingers()[0].minutiae, 350 , 450, 500, 500)
+                            { rc: ResultCode,  temp ->
+                                Log.d(TAG, "RESULT = " + rc);
+                                Log.d(TAG, "RESULT LENTGH = " + temp.size);
+                                App.BioManager!!.compareFMD(temp, FP1.FMD, FMDFormat.ISO_19794_2_2005)
+                                { rc: ResultCode,  score ->
+                                    Log.d(TAG, "RESULT COMPARE = " + rc)
+                                    Log.d(TAG, "COMPARE SCORE = " + score)
+                                }
+                            }
+                            App.BioManager!!.convertCCFToFMD(data.DG10.getFingers()[0].minutiae, 350 , 450, 500, 500)
+                            { rc: ResultCode,  temp ->
+                                Log.d(TAG, "RESULT = " + rc);
+                                Log.d(TAG, "RESULT LENTGH = " + temp.size);
+                                App.BioManager!!.compareFMD(temp, data.DG10.getFingers()[0].minutiae, FMDFormat.ISO_19794_2_2005)
+                                { rc: ResultCode,  score ->
+                                    Log.d(TAG, "RESULT COMPARE = " + rc)
+                                    Log.d(TAG, "COMPARE FMD againt CCF SCORE = " + score)
+                                }
+                            }
+
+                        }
 
                     } else if (ICAOReadIntermediateCode.DG11 == stage) {
                         if (OK == rc)
