@@ -1,7 +1,10 @@
 package com.credenceid.sample.epassport
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import android.widget.Toast.LENGTH_LONG
@@ -11,12 +14,43 @@ import com.credenceid.biometrics.Biometrics.ResultCode.*
 import com.credenceid.biometrics.BiometricsManager
 import com.credenceid.biometrics.DeviceFamily
 
+
+private const val REQUEST_ALL_PERMISSIONS = 0
+/**
+ * List of all permissions we will request.
+ */
+private val PERMISSIONS = arrayOf(
+        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        Manifest.permission.READ_EXTERNAL_STORAGE,
+        Manifest.permission.CAMERA,
+        Manifest.permission.READ_CONTACTS,
+        Manifest.permission.READ_PHONE_STATE)
+
 class LaunchActivity : Activity() {
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
+
+        this.requestPermissions()
         this.initBiometrics()
+    }
+
+    /**
+     * Checks if permissions stated in manifest have been granted, if not it then requests them.
+     */
+    private fun requestPermissions() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                    || checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                    || checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
+                    || checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED
+                    ||checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(PERMISSIONS, REQUEST_ALL_PERMISSIONS)
+            }
+        }
     }
 
     private fun initBiometrics() {
@@ -40,6 +74,8 @@ class LaunchActivity : Activity() {
                         DeviceFamily.CredenceTAB ->
                             Intent(this, MRZActivity::class.java)
                         DeviceFamily.CredenceTwo ->
+                            Intent(this, MRZActivity::class.java)
+                        DeviceFamily.CredenceECO ->
                             Intent(this, MRZActivity::class.java)
                         else -> return@initializeBiometrics
                     }

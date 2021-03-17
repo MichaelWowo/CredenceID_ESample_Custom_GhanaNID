@@ -14,21 +14,23 @@ import kotlinx.android.synthetic.main.act_mrz_ctwo.*
 /**
  * Used for Android Logcat.
  */
-private val TAG = MRZActivity::class.java.simpleName
+private val TAG = "CID-EPass"
 /**
  * Keeps track of card reader sensor state.
  */
 private var isCardReaderOpen = false
 private var isPassportReaderOpen = false
 private var isDocumentPresent = false
-private var CERTIFICATES_LOCAL_EID_PATH = "/sdcard/credenceid/GhanaNID/eid/"
+private var CERTIFICATES_LOCAL_EID_PATH = "/data/GhanaNID/eid/"
 private var CERTIFICATES_LOCAL_ICAO_PATH = "/sdcard/credenceid/GhanaNID/icao/"
 
 class MRZActivity : Activity() {
 
     private var onCardStatusListener = OnCardStatusListener { _, _, currState ->
+        Log.d(TAG, "Card reader status : " + currState)
         if (currState in 2..6) {
             readGhanaIdBtn.isEnabled = true
+            readIcaoBtn.isEnabled = true
             isDocumentPresent = true
         } else {
             setReadButtons (false)
@@ -54,11 +56,13 @@ class MRZActivity : Activity() {
         this.configureLayoutComponents()
     }
 
+
     override fun onDestroy() {
 
         super.onDestroy()
 
         /* Make sure to close all peripherals on application exit. */
+        App.BioManager!!.cardCloseCommand()
         App.BioManager!!.ePassportCloseCommand()
         App.BioManager!!.closeMRZ()
     }
@@ -98,8 +102,11 @@ class MRZActivity : Activity() {
             this.readICAODocument(mrzString)
         }
 
+
         generateCertificateRequestBtn.setOnClickListener {
-            App.BioManager!!.generateTerminalIsCertificate(generateTerminalIsCertificateListener { resultCode, s ->
+            val certificateName = "MyCertificate"
+            App.BioManager!!.generateTerminalIsCertificate(certificateName)
+            { resultCode, s ->
                 when (resultCode) {
                     OK -> {
                         statusTextView.text = "Certificate generation OK"
@@ -113,7 +120,6 @@ class MRZActivity : Activity() {
                     }
                 }
             }
-            )
         }
     }
 
@@ -123,8 +129,6 @@ class MRZActivity : Activity() {
         icaoTextView1.setText("")
         icaoTextView2.setText("")
         statusTextView.text = getString(R.string.cardreader_opening)
-
-        App.BioManager!!.registerCardStatusListener(onCardStatusListener)
 
         App.BioManager!!.cardOpenCommand(object : CardReaderStatusListener {
             override fun onCardReaderOpen(resultCode: ResultCode?) {
@@ -136,6 +140,8 @@ class MRZActivity : Activity() {
                          * will take.
                          */
                         isCardReaderOpen = true
+
+                        App.BioManager!!.registerCardStatusListener(onCardStatusListener)
 
                         statusTextView.text = getString(R.string.card_opened)
                         openCardBtn.text = getString(R.string.close_card)
@@ -297,14 +303,17 @@ class MRZActivity : Activity() {
         setReadButtons (false)
         statusTextView.text = getString(R.string.reading)
 
-        App.BioManager!!.readSmartCard(can,CERTIFICATES_LOCAL_EID_PATH, "GhanaNID")
+        App.BioManager!!.readSmartCard(can,null, "GhanaNID")
         { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String?, data: GIdData ->
 
             Log.d(TAG, "STAGE: " + stage.name + ", Status: " + rc.name + "Hint: $hint")
-            Log.d("CID", "GhanaIdCardData: $data")
+            Log.d(TAG, "GhanaIdCardData: $data")
 
             when (rc) {
                 OK -> {
+
+
+                    Log.d(TAG, "EPASSPORT sample - Stage complated = " + stage)
 
                     statusTextView.text = "Finished reading stage: " + stage.name
                     if (ICAOReadIntermediateCode.BAC == stage) {
@@ -321,7 +330,7 @@ class MRZActivity : Activity() {
                     } else if (ICAOReadIntermediateCode.DG2 == stage) {
                         if (OK == rc) {
                             icaoTextView1.text = icaoTextView1.text.toString() + "\nDG2 - " + data.DG2.toString()
-                            icaoDG2ImageView.setImageBitmap(data.DG2.faceImage)
+                            //icaoDG2ImageView.setImageBitmap(data.DG2.faceImage)
                         }
 
                     } else if (ICAOReadIntermediateCode.DG3 == stage) {
@@ -337,8 +346,9 @@ class MRZActivity : Activity() {
                             icaoTextView2.text = icaoTextView2.text.toString() + "\nDG5 - " + data.DG5.toString()
 
                     }  else if (ICAOReadIntermediateCode.DG6 == stage) {
-                        if (OK == rc)
+                        if (OK == rc) {
                             icaoTextView2.text = icaoTextView2.text.toString() + "\nDG6 - " + data.DG6.toString()
+                        }
 
                     } else if (ICAOReadIntermediateCode.DG7 == stage) {
                         if (OK == rc)
@@ -356,27 +366,27 @@ class MRZActivity : Activity() {
                         if (OK == rc) {
                             icaoTextView2.text = icaoTextView2.text.toString() + "\nDG10 - " + data.DG10.toString()
                             Log.d(TAG, "MINUTIAE LENTGH = " + data.DG10.getFingers()[0].minutiae.size);
-                            var FP1 = App.BioManager!!.convertCCFToFMDSync(data.DG10.getFingers()[1].minutiae, 350 , 450, 500, 500, 2000)
-                            App.BioManager!!.convertCCFToFMD(data.DG10.getFingers()[0].minutiae, 350 , 450, 500, 500)
-                            { rc: ResultCode,  temp ->
-                                Log.d(TAG, "RESULT = " + rc);
-                                Log.d(TAG, "RESULT LENTGH = " + temp.size);
-                                App.BioManager!!.compareFMD(temp, FP1.FMD, FMDFormat.ISO_19794_2_2005)
-                                { rc: ResultCode,  score ->
-                                    Log.d(TAG, "RESULT COMPARE = " + rc)
-                                    Log.d(TAG, "COMPARE SCORE = " + score)
-                                }
-                            }
-                            App.BioManager!!.convertCCFToFMD(data.DG10.getFingers()[0].minutiae, 350 , 450, 500, 500)
-                            { rc: ResultCode,  temp ->
-                                Log.d(TAG, "RESULT = " + rc);
-                                Log.d(TAG, "RESULT LENTGH = " + temp.size);
-                                App.BioManager!!.compareFMD(temp, data.DG10.getFingers()[0].minutiae, FMDFormat.ISO_19794_2_2005)
-                                { rc: ResultCode,  score ->
-                                    Log.d(TAG, "RESULT COMPARE = " + rc)
-                                    Log.d(TAG, "COMPARE FMD againt CCF SCORE = " + score)
-                                }
-                            }
+//                            var FP1 = App.BioManager!!.convertCCFToFMDSync(data.DG10.getFingers()[1].minutiae, 350 , 450, 500, 500, 2000)
+//                            App.BioManager!!.convertCCFToFMD(data.DG10.getFingers()[0].minutiae, 350 , 450, 500, 500)
+//                            { rc: ResultCode,  temp ->
+//                                Log.d(TAG, "RESULT = " + rc);
+//                                Log.d(TAG, "RESULT LENTGH = " + temp.size);
+//                                App.BioManager!!.compareFMD(temp, FP1.FMD, FMDFormat.ISO_19794_2_2005)
+//                                { rc: ResultCode,  score ->
+//                                    Log.d(TAG, "RESULT COMPARE = " + rc)
+//                                    Log.d(TAG, "COMPARE SCORE = " + score)
+//                                }
+//                            }
+//                            App.BioManager!!.convertCCFToFMD(data.DG10.getFingers()[0].minutiae, 350 , 450, 500, 500)
+//                            { rc: ResultCode,  temp ->
+//                                Log.d(TAG, "RESULT = " + rc);
+//                                Log.d(TAG, "RESULT LENTGH = " + temp.size);
+//                                App.BioManager!!.compareFMD(temp, data.DG10.getFingers()[0].minutiae, FMDFormat.ISO_19794_2_2005)
+//                                { rc: ResultCode,  score ->
+//                                    Log.d(TAG, "RESULT COMPARE = " + rc)
+//                                    Log.d(TAG, "COMPARE FMD againt CCF SCORE = " + score)
+//                                }
+//                            }
 
                         }
 
@@ -413,14 +423,25 @@ class MRZActivity : Activity() {
 
         Log.d(TAG, "Reading ICAO document: $mrz")
 
+
+        //Hemingway card
+        val documentNumber = "L898902C<"
+        val dateOfBirth = "800622"
+        val dateOfExpiry = "200101"
+
+        //Specimen Natacha card
+//        val documentNumber = "58RF02248"
+//        val dateOfBirth = "730712"
+//        val dateOfExpiry = "160306"
+
         /* Disable button so user does not initialize another readICAO document API call. */
         setReadButtons(false)
         statusTextView.text = getString(R.string.reading)
 
-        App.BioManager!!.readSmartCard(mrz,
-                CERTIFICATES_LOCAL_ICAO_PATH, "GhanaICAO"
-        )
-        //App.BioManager!!.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
+//        App.BioManager!!.readSmartCard(mrz,
+//                CERTIFICATES_LOCAL_ICAO_PATH, "GhanaICAO"
+//        )
+        App.BioManager!!.readICAODocument(dateOfBirth, documentNumber, dateOfExpiry)
         { rc: ResultCode, stage: ICAOReadIntermediateCode, hint: String?, data: ICAODocumentData ->
 
             Log.d(TAG, "STAGE: " + stage.name + ", Status: " + rc.name + "Hint: $hint")
@@ -435,13 +456,13 @@ class MRZActivity : Activity() {
 
             } else if (ICAOReadIntermediateCode.DG1 == stage) {
                 if (OK == rc) {
-                    Log.d("CPC", "DG1 DATA = "+ data.DG1.toString());
+                    Log.d("CID", "DG1 DATA = "+ data.DG1.toString());
                     icaoTextView2.text = data.DG1.toString()
                 }
 
             } else if (ICAOReadIntermediateCode.DG2 == stage) {
                 if (OK == rc) {
-                    icaoTextView1.text = data.DG2.toString()
+                    //icaoTextView1.text = data.DG2.toString()
                     icaoDG2ImageView.setImageBitmap(data.DG2.faceImage)
                 }
 
